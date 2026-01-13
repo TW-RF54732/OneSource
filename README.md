@@ -1,25 +1,30 @@
+Here is the updated **README.md** including a dedicated section for Windows users to utilize the pre-compiled `.exe` CLI tool.
+
+---
+
 # OneSource
 
 OneSource is a high-efficiency project code aggregator designed specifically for **Vibe Coding**. It consolidates source code from any project into a single structured text file, making it easy to provide full project context to Large Language Models (LLMs) in one step.
 
 ---
 
-## Core Features
-
-* **Streaming I/O Architecture**: Processes files using a stream-based mechanism. This ensures a minimal memory footprint regardless of project size, preventing Out-of-Memory (OOM) errors.
-* **Precise Token Counting**: Integrates with the `tiktoken` library to provide exact token statistics (cl100k_base), helping you manage LLM context window limits effectively.
-* **General Purpose Filtering**:
-* **Gitignore Support**: Automatically respects rules defined in `.gitignore`.
-* **Binary Detection**: Identifies and skips non-text files (images, executables, etc.).
-* **Size Protection**: Prevents large logs or datasets from being included via the `--max-size` flag.
-
-
-* **LLM-Optimized Structure**: Uses XML tags (`<file path="...">`) to wrap code blocks, providing the most reliable boundary recognition for models like Claude 3.5 and GPT-4.
-* **Configuration Persistence**: Supports `.onesourcerc` files to store your preferred settings, eliminating the need to re-enter arguments for every run.
-
----
-
 ## Installation
+
+### For Windows Users (CLI Executable)
+
+If you are using the pre-compiled version:
+
+1. **Download** `OneSource.exe` from the [Releases] section.
+2. **Move** the file to a dedicated folder (e.g., `C:\Tools\`).
+3. **Add to PATH**:
+* Open the Start Search, type "env", and select "Edit the system environment variables".
+* Click "Environment Variables", find "Path" under "User variables", and click "Edit".
+* Click "New" and add the path to the folder where you saved `OneSource.exe`.
+
+
+4. **Usage**: Open a new Terminal/Command Prompt and run `OneSource` directly from any project directory.
+
+### For Python Users
 
 OneSource requires Python 3.8 or higher.
 
@@ -38,7 +43,8 @@ pip install pathspec pyperclip tiktoken
 Run in the project root to generate `allCode.txt`:
 
 ```bash
-python app.py
+OneSource
+# Or if using the script: python app.py
 
 ```
 
@@ -47,7 +53,7 @@ python app.py
 Processes the project and automatically copies the result to your clipboard:
 
 ```bash
-python app.py -c
+OneSource -c
 
 ```
 
@@ -56,7 +62,7 @@ python app.py -c
 Check the total token count and file list without creating an output file:
 
 ```bash
-python app.py --dry-run -t
+OneSource --dry-run -t
 
 ```
 
@@ -65,11 +71,11 @@ python app.py --dry-run -t
 Save specific exclusions or extensions to avoid repeating them in future sessions:
 
 ```bash
-python app.py --exclude venv,dist --ext .py,.js --save
+OneSource --exclude venv,dist --ext .py,.js --save
 
 ```
 
-This creates a `.onesourcerc` file in the current directory. Subsequent executions only require the command `python app.py`.
+This creates a `.onesourcerc` file in the current directory. Subsequent executions only require the command `OneSource`.
 
 ---
 
