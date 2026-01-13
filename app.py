@@ -5,14 +5,13 @@ from pathlib import Path
 import pathspec
 import pyperclip
 
-# 選用：精準 Token 計算
+# Optional: Precise Token Calculation
 try:
     import tiktoken
     HAS_TIKTOKEN = True
 except ImportError:
     HAS_TIKTOKEN = False
 
-# 你的專屬 Banner 重新歸位
 BANNER = r"""
 ==========================================================
   ____  _   _ _____   ____   ___  _   _ ____   ____ _____ 
@@ -27,7 +26,7 @@ BANNER = r"""
 
 CONFIG_FILE = ".onesourcerc"
 
-class OneSourcePro:
+class OneSource:
     def __init__(self):
         self.args = self._parse_args()
         self.root = Path(self.args.path).resolve()
@@ -41,19 +40,20 @@ class OneSourcePro:
             try:
                 with open(CONFIG_FILE, "r") as f:
                     defaults = json.load(f)
-            except: pass
+            except: 
+                pass
 
         parser = argparse.ArgumentParser(description=BANNER, formatter_class=argparse.RawDescriptionHelpFormatter)
-        parser.add_argument("path", nargs="?", default=defaults.get("path", "."), help="目標路徑")
-        parser.add_argument("-o", "--output", default=defaults.get("output", "allCode.txt"), help="輸出檔名")
-        parser.add_argument("-e", "--ext", default=defaults.get("ext"), help="限定副檔名 (例: .py,.js)")
-        parser.add_argument("--exclude", default=defaults.get("exclude"), help="額外排除名稱")
-        parser.add_argument("--max-size", type=int, default=defaults.get("max_size", 500), help="檔案上限 (KB)")
-        parser.add_argument("--no-ignore", action="store_true", help="忽略 .gitignore")
-        parser.add_argument("--dry-run", action="store_true", help="僅預覽不寫入")
-        parser.add_argument("-c", "--copy", action="store_true", help="複製到剪貼簿")
-        parser.add_argument("-t", "--tokens", action="store_true", help="計算 Token")
-        parser.add_argument("--save", action="store_true", help="將當前參數儲存為預設配置")
+        parser.add_argument("path", nargs="?", default=defaults.get("path", "."), help="Target project path")
+        parser.add_argument("-o", "--output", default=defaults.get("output", "allCode.txt"), help="Output filename")
+        parser.add_argument("-e", "--ext", default=defaults.get("ext"), help="Filter by extensions (e.g., .py,.js)")
+        parser.add_argument("--exclude", default=defaults.get("exclude"), help="Additional names to exclude")
+        parser.add_argument("--max-size", type=int, default=defaults.get("max_size", 500), help="Max file size (KB)")
+        parser.add_argument("--no-ignore", action="store_true", help="Ignore .gitignore rules")
+        parser.add_argument("--dry-run", action="store_true", help="Preview list without writing to disk")
+        parser.add_argument("-c", "--copy", action="store_true", help="Copy output to clipboard")
+        parser.add_argument("-t", "--tokens", action="store_true", help="Calculate token count")
+        parser.add_argument("--save", action="store_true", help="Save current arguments as default config")
 
         args = parser.parse_args()
 
@@ -71,7 +71,8 @@ class OneSourcePro:
         return args
 
     def _load_gitignore(self):
-        if self.args.no_ignore: return None
+        if self.args.no_ignore: 
+            return None
         gi = self.root / ".gitignore"
         return pathspec.PathSpec.from_lines('gitwildmatch', gi.read_text().splitlines()) if gi.exists() else None
 
@@ -80,16 +81,22 @@ class OneSourcePro:
             with open(path, 'tr') as f:
                 f.read(1024)
                 return False
-        except: return True
+        except: 
+            return True
 
     def _should_ignore(self, path: Path):
-        if path.is_symlink() or ".git" in path.parts or path == self.output_path: return True
+        if path.is_symlink() or ".git" in path.parts or path == self.output_path: 
+            return True
         rel_path = path.relative_to(self.root)
-        if self.args.exclude and any(ex in path.parts for ex in self.args.exclude.split(",")): return True
-        if self.spec and self.spec.match_file(str(rel_path)): return True
-        if self.args.ext and path.suffix not in self.args.ext.split(","): return True
+        if self.args.exclude and any(ex in path.parts for ex in self.args.exclude.split(",")): 
+            return True
+        if self.spec and self.spec.match_file(str(rel_path)): 
+            return True
+        if self.args.ext and path.suffix not in self.args.ext.split(","): 
+            return True
         if path.is_file():
-            if path.stat().st_size > self.args.max_size * 1024 or self._is_binary(path): return True
+            if path.stat().st_size > self.args.max_size * 1024 or self._is_binary(path): 
+                return True
         return False
 
     def _generate_tree(self, dir_path, prefix=""):
@@ -104,7 +111,7 @@ class OneSourcePro:
         return tree_str
 
     def run(self):
-        # 顯示 Banner
+        # Display Banner
         print(BANNER)
         
         mode_label = "[DRY RUN]" if self.args.dry_run else "[PROCESSING]"
@@ -132,7 +139,8 @@ class OneSourcePro:
             except Exception as e:
                 print(f"  ! Error reading {rel_path}: {e}")
 
-        if out_file: out_file.close()
+        if out_file: 
+            out_file.close()
 
         print("\n" + "="*40)
         print(f"Files Processed: {len(valid_files)}")
@@ -148,4 +156,4 @@ class OneSourcePro:
         print("="*40)
 
 if __name__ == "__main__":
-    OneSourcePro().run()
+    OneSource().run()
