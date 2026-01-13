@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import pathspec
 import pyperclip
-
+import tiktoken_ext.openai_public
 # Optional: Precise Token Calculation
 try:
     import tiktoken
@@ -16,8 +16,8 @@ BANNER = r"""
 ==========================================================
   ____  _   _ _____   ____   ___  _   _ ____   ____ _____ 
  / __ \| \ | | ____| / ___| / _ \| | | |  _ \ / ___| ____|
-| |  | |  \| |  _|   \___ \| | | | | | | |_) | |   |  _|  
-| |__| | |\  | |___   ___) | |_| | |_| |  _ <| |___| |___ 
+ | |  | |  \| |  _|   \___ \| | | | | | | |_) | |   |  _|  
+ | |__| | |\  | |___   ___) | |_| | |_| |  _ <| |___| |___ 
  \____/|_| \_|_____| |____/ \___/ \___/|_| \_\\____|_____|
                           
  >> DOS-STYLE PROJECT AGGREGATOR | VIBE CODING EDITION <<
