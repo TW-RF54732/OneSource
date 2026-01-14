@@ -1,7 +1,3 @@
-Here is the updated **README.md** including a dedicated section for Windows users to utilize the pre-compiled `.exe` CLI tool.
-
----
-
 # OneSource
 
 OneSource is a high-efficiency project code aggregator designed specifically for **Vibe Coding**. It consolidates source code from any project into a single structured text file, making it easy to provide full project context to Large Language Models (LLMs) in one step.
