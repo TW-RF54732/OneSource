@@ -1,44 +1,128 @@
 # OneSource ⚡
 
-> **The "Vibe Coding" CLI for Windows & Python Developers.**
+> **The Local-First Project Packer for AI Context.**
 >
-> **No Node.js? No Python? No Problem.** Just download the `.exe` and start vibing with your AI.
+> **Escape the Node.js ecosystem.** No `npm install`. No file uploads.
+> **Just download and run.** (Or `pip install` if you prefer).
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
+[![PyPI version](https://img.shields.io/pypi/v/onesource-cli.svg)](https://pypi.org/project/onesource-cli/)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 
-OneSource is a lightweight tool designed to make **AI-assisted coding** effortless. It packs your entire project structure and code into a single context-rich text file (or copies it to your clipboard), so you can feed it to ChatGPT, Claude, or Gemini in one second.
+**OneSource** aggregates your entire project into a single, context-rich text file (or clipboard) for LLMs like Claude, ChatGPT, and Gemini.
+
+It bridges the gap between **Windows users** who want a simple `.exe` and **Python developers** who want a native CLI tool.
 
 ---
 
-## 🚀 Why Use OneSource?
+## 🥊 Why OneSource? (vs The Rest)
 
-* **⚡ Zero Dependencies (Windows):** No `npm install`, no `pip install`. Just a single executable file.
-* **📋 Clipboard Ready:** With the `-c` flag, your codebase is copied to your clipboard instantly.
-* **🧠 Context Aware:** Automatically respects `.gitignore` to keep trash files out of your LLM context.
-* **🌳 Structure Visualization:** Includes a tree view of your project so the AI understands your architecture.
+| Feature | **OneSource** ⚡ | **Repomix** (Repopack) | **Gitingest** | **code2prompt** |
+| :--- | :--- | :--- | :--- | :--- |
+| **No Node.js Required** | ✅ **YES** (Standalone EXE) | ❌ No (Need NPM) | ✅ Yes (Web) | ✅ Yes (Rust) |
+| **Local Privacy** | ✅ **100% Local** | ✅ Local | ❌ **Uploads/Git Push needed** | ✅ Local |
+| **Windows Friendly** | ✅ **Native .exe** | ❌ Complex setup | ✅ Web browser | ⚠️ CLI focused |
+| **Edit/Extend** | ✅ **Simple Python** | ❌ TypeScript | ❌ Web Service | ❌ Rust (Harder to mod) |
+| **Clipboard Auto-Copy**| ✅ **Built-in** | ✅ Yes | ❌ Manual copy | ✅ Yes |
+
+* **vs Repomix:** Stop installing 200MB of `node_modules` just to pack a text file. OneSource is lightweight.
+* **vs Gitingest:** Don't push your private secrets or messy WIP code to GitHub just to analyze it. OneSource works on your *local* disk, offline.
+* **vs code2prompt:** Easier for Python developers to customize and integrate into their own scripts.
 
 ---
 
 ## 📥 Installation
 
-### 🖥️ For Windows Users (The Easiest Way)
+Choose the method that fits your workflow.
 
-You don't need Python or Node.js installed.
+### 🅰️ Method A: The "It Just Works" Way (Recommended for Windows)
+**Perfect for:** PMs, Students, Windows Users, or "Vibe Coders" who don't want to manage environments.
 
-1.  **Download**: Get the latest `OneSource.exe` from the **[Releases Page]** (link-to-releases).
-2.  **Place It**: Move the file to a folder, e.g., `C:\Tools\`.
-3.  **Set Up (Once)**: Add it to your system PATH so you can run it from anywhere.
-    * Press `Win` key, type **"env"**, select **"Edit the system environment variables"**.
-    * Click **"Environment Variables"** -> Under **"User variables"**, find **`Path`** -> **"Edit"**.
-    * Click **"New"** -> Paste the folder path (e.g., `C:\Tools\`).
-    * Click **OK** on all windows.
-4.  **Verify**: Open a new Command Prompt (cmd) and type `OneSource`.
+> **No Python? No Node.js? No Problem.**
 
-### 🐍 For Python Users
+1.  **Download**: Get the latest `OneSource.exe` from the **[Releases Page](../../releases)**.
+2.  **Run**: Open cmd/PowerShell in your project folder and run `OneSource.exe`.
+3.  **(Optional) Add to PATH**: Move it to `C:\Windows\` or any PATH folder to run it from anywhere.
 
-If you prefer `pip` or are on Linux/macOS:
+---
+
+### 🅱️ Method B: The Developer Way (Python Native)
+**Perfect for:** Python devs, Linux/macOS users, or CI/CD pipelines.
+
+If you already have Python installed, grab it via PyPI:
 
 ```bash
-pip install pathspec pyperclip tiktoken
-# Then run the script directly
-python app.py
+pip install onesource-cli
+
+```
+
+---
+
+## 🎮 Usage Scenarios
+
+Run these commands in your project root.
+
+### Scenario 1: The "Lazy" Mode (Bug Fixing) 🌟
+
+You broke the code. You need AI help NOW.
+This packs everything (respecting `.gitignore`) and copies it to your clipboard.
+
+```bash
+OneSource -c
+
+```
+
+*-> Ctrl+V into ChatGPT.*
+
+### Scenario 2: Focused Backend Work
+
+Don't confuse the AI with frontend assets. Only grab the Python logic.
+
+```bash
+OneSource -i "*.py" -c
+
+```
+
+### Scenario 3: "Will this fit in the context window?"
+
+Check token count before pasting.
+
+```bash
+OneSource -t --dry-run
+
+```
+
+### Scenario 4: Set It and Forget It
+
+Always exclude `tests/` and `legacy/` folders? Save your config.
+
+```bash
+OneSource -x "tests/**,legacy/**" --save
+
+```
+
+*Creates a hidden config file. Next time, just run `OneSource`.*
+
+---
+
+## 📖 Command Reference
+
+| Argument | Description | Default |
+| --- | --- | --- |
+| `path` | **(Positional)** Target project path. | Current folder (`.`) |
+| `-o`, `--output` | Output filename. | `allCode.txt` |
+| `-c`, `--copy` | **Auto-copy** result to clipboard. | `False` |
+| `-i`, `--include` | Only include files matching this pattern (Applied **AFTER** `.gitignore`). | All non-ignored files |
+| `-x`, `--exclude` | Extra patterns to ignore. Wins over  `-i`  if conflict. | `None` |
+| `-t`, `--tokens` | Show token count (requires `tiktoken`). | `False` |
+| `--no-tree` | Disable the directory tree visualization at the top. | `False` |
+| `--max-size` | Skip files larger than this size (in KB). | `500` KB |
+| `--no-ignore` | **Unlock mode:** Force scan files even if listed in `.gitignore`. | `False` |
+| `--marker` | Custom XML tag for wrapping code (e.g., use `code` instead of `file`). | `file` |
+| `--dry-run` | Preview which files will be processed without writing/copying. | `False` |
+| `--save` | Save current flags as default config (`.onesourcerc`). | `False` |
+
+---
+
+*Built for Vibe Coding. Privacy First. Local First.*
+
