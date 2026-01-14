@@ -2,8 +2,8 @@
 
 > **The Local-First Project Packer for AI Context.**
 >
-> **Escape the Node.js ecosystem.** No `npm install`. No file uploads.
-> **Just download and run.** (Or `pip install` if you prefer).
+> 🚫 **Escape the Node.js ecosystem.** No `npm install`. No file uploads.
+> 🚀 **Just download and run.** (Or `pip install` if you prefer).
 
 [![PyPI version](https://img.shields.io/pypi/v/onesource-cli.svg)](https://pypi.org/project/onesource-cli/)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -33,28 +33,61 @@ It bridges the gap between **Windows users** who want a simple `.exe` and **Pyth
 
 ## 📥 Installation
 
-Choose the method that fits your workflow.
+Select your platform below to see the instructions.
 
-### 🅰️ Method A: The "It Just Works" Way (Recommended for Windows)
-**Perfect for:** PMs, Students, Windows Users, or "Vibe Coders" who don't want to manage environments.
+<details>
+<summary><strong>🪟 Windows Users (Click to expand)</strong></summary>
 
-> **No Python? No Node.js? No Problem.**
+We offer three ways to install OneSource on Windows. Choose the one that fits your style.
 
-1.  **Download**: Get the latest `OneSource.exe` from the **[Releases Page](../../releases)**.
-2.  **Run**: Open cmd/PowerShell in your project folder and run `OneSource.exe`.
-3.  **(Optional) Add to PATH**: Move it to `C:\Windows\` or any PATH folder to run it from anywhere.
+#### Option 1: The Local Installer (Recommended)
+*Best for most users. Ensures the tool is added to your system PATH.*
 
----
+1.  Download `OneSource_Windows_Installer.zip` from the **[Releases Page](https://github.com/TW-RF54732/OneSource/releases)**.
+2.  **Unzip** the file.
+3.  Double-click `install.bat`.
+4.  Done! You can now type `OneSource` in any terminal.
 
-### 🅱️ Method B: The Developer Way (Python Native)
-**Perfect for:** Python devs, Linux/macOS users, or CI/CD pipelines.
+#### Option 2: The Network Installer (PowerShell)
+*Best for power users or scripts. Installs the latest version via one command.*
 
-If you already have Python installed, grab it via PyPI:
+Open **PowerShell** and paste the following:
+
+```powershell
+irm [https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1](https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1) | iex
+
+```
+
+#### Option 3: The Portable EXE
+
+*Best for USB drives or temporary use.*
+
+1. Download the standalone `OneSource.exe` from Releases.
+2. Place it anywhere (e.g., inside your project folder).
+3. Run it directly via terminal: `.\OneSource.exe`
+
+</details>
+
+<details>
+<summary><strong>🐍 Python Developers / Linux / macOS (Click to expand)</strong></summary>
+
+If you have Python installed or want to integrate this into your CI/CD pipeline, use PyPI.
+
+**Installation:**
 
 ```bash
 pip install onesource-cli
 
 ```
+
+**Upgrade:**
+
+```bash
+pip install --upgrade onesource-cli
+
+```
+
+</details>
 
 ---
 
@@ -113,7 +146,7 @@ OneSource -x "tests/**,legacy/**" --save
 | `-o`, `--output` | Output filename. | `allCode.txt` |
 | `-c`, `--copy` | **Auto-copy** result to clipboard. | `False` |
 | `-i`, `--include` | Only include files matching this pattern (Applied **AFTER** `.gitignore`). | All non-ignored files |
-| `-x`, `--exclude` | Extra patterns to ignore. Wins over  `-i`  if conflict. | `None` |
+| `-x`, `--exclude` | Extra patterns to ignore. **Wins over `-i**` if there is a conflict. | `None` |
 | `-t`, `--tokens` | Show token count (requires `tiktoken`). | `False` |
 | `--no-tree` | Disable the directory tree visualization at the top. | `False` |
 | `--max-size` | Skip files larger than this size (in KB). | `500` KB |
@@ -125,4 +158,3 @@ OneSource -x "tests/**,legacy/**" --save
 ---
 
 *Built for Vibe Coding. Privacy First. Local First.*
-

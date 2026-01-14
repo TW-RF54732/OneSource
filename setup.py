@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
 
+[cite_start]# [cite: 2] Read README properly
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
     name="onesource-cli",
-    version="1.1.3",
+    version="1.2.0",  # Bump to 1.2.0 for the new Self-Installer feature
     author="lolLeo",
     author_email="your.email@example.com",
     description="A vibe coding tool to aggregate project code for LLMs.",

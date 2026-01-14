@@ -1,4 +1,6 @@
 import os
+import sys
+import shutil
 import argparse
 import json
 from pathlib import Path
@@ -13,7 +15,10 @@ try:
 except ImportError:
     HAS_TIKTOKEN = False
 
-BANNER = r"""
+VERSION = "v1.2.0"
+
+# This BANNER will appear in --help and the Installer
+BANNER = rf"""
 ==========================================================
   ____  _   _ _____   ____   ___  _   _ ____   ____ _____ 
  / __ \| \ | | ____| / ___| / _ \| | | |  _ \ / ___| ____|
@@ -21,7 +26,7 @@ BANNER = r"""
 | |__| | |\  | |___   ___) | |_| | |_| |  _ <| |___| |___ 
  \____/|_| \_|_____| |____/ \___/ \___/|_| \_\\____|_____|
                           
- >> DOS-STYLE PROJECT AGGREGATOR | VIBE CODING EDITION <<
+ >> OneSource {VERSION} | The Local-First Vibe Coding Tool <<
 ==========================================================
 """
 
@@ -31,8 +36,10 @@ class OneSource:
     def __init__(self):
         self.args = self._parse_args()
         self.root = Path(self.args.path).resolve()
+        # Resolve absolute path to prevent the output file from checking itself improperly
+        self.output_path = Path(self.args.output).resolve()
+        
         self.spec = self._load_gitignore()
-        self.output_path = Path(self.args.output)
         
         # Build pathspecs for include/exclude
         self.include_spec = self._build_pathspec(self.args.include)
@@ -43,12 +50,12 @@ class OneSource:
             try:
                 self.encoder = tiktoken.get_encoding("cl100k_base")
             except Exception as e:
-                print(f"  ! Warning: Failed to load tiktoken encoding: {e}")
+                # Keep silent in CLI
+                pass
 
     def _build_pathspec(self, patterns_str):
         if not patterns_str:
             return None
-        # Split by comma and strip whitespace
         patterns = [p.strip() for p in patterns_str.split(",") if p.strip()]
         return pathspec.PathSpec.from_lines('gitwildmatch', patterns)
 
@@ -61,7 +68,12 @@ class OneSource:
             except: 
                 pass
 
-        parser = argparse.ArgumentParser(description=BANNER, formatter_class=argparse.RawDescriptionHelpFormatter)
+        # Setting description=BANNER here ensures it shows up when running --help
+        parser = argparse.ArgumentParser(
+            description=BANNER, 
+            formatter_class=argparse.RawDescriptionHelpFormatter
+        )
+        
         parser.add_argument("path", nargs="?", default=defaults.get("path", "."), help="Target project path")
         parser.add_argument("-o", "--output", default=defaults.get("output", "allCode.txt"), help="Output filename")
         parser.add_argument("-i", "--include", default=defaults.get("include"), help="Include patterns (e.g., *.py,src/**/*.js)")
@@ -74,6 +86,9 @@ class OneSource:
         parser.add_argument("-c", "--copy", action="store_true", help="Copy output to clipboard")
         parser.add_argument("-t", "--tokens", action="store_true", help="Calculate token count")
         parser.add_argument("--save", action="store_true", help="Save current arguments as default config")
+        
+        # Add a version flag
+        parser.add_argument("-v", "--version", action="version", version=f"OneSource {VERSION}")
 
         args = parser.parse_args()
 
@@ -98,25 +113,32 @@ class OneSource:
         gi = self.root / ".gitignore"
         if gi.exists():
             try:
+                # Read gitignore with utf-8
                 content = gi.read_text(encoding="utf-8", errors="ignore")
                 return pathspec.PathSpec.from_lines('gitwildmatch', content.splitlines())
             except Exception as e:
                 print(f"  ! Warning: Failed to read .gitignore: {e}")
                 return None
         return None
+
     def _is_binary(self, path: Path):
+        # Check for binary by attempting to read as UTF-8 first
         try:
-            with open(path, 'tr') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 f.read(1024)
                 return False
-        except: 
-            return True
+        except UnicodeDecodeError:
+            return True # Truly binary or non-UTF-8
+        except Exception: 
+            return True # Other read errors, treat as binary
 
     def _should_ignore(self, path: Path):
+        # Compare absolute paths
         if path.is_symlink() or ".git" in path.parts or path == self.output_path: 
             return True
         
-        rel_path = str(path.relative_to(self.root))
+        # Normalize path separators to forward slashes for pathspec compatibility
+        rel_path = str(path.relative_to(self.root)).replace('\\', '/')
         
         # Gitignore check
         if self.spec and self.spec.match_file(rel_path): 
@@ -127,7 +149,7 @@ class OneSource:
             return True
 
         if path.is_file():
-            # Custom include check: if include is set, file must match
+            # Custom include check
             if self.include_spec and not self.include_spec.match_file(rel_path):
                 return True
             
@@ -154,7 +176,7 @@ class OneSource:
         return tree_str
 
     def run(self):
-        print(BANNER)
+        # NOTE: BANNER is NOT printed here anymore to keep CLI output clean.
         
         mode_label = "[DRY RUN]" if self.args.dry_run else "[PROCESSING]"
         print(f"{mode_label} Root: {self.root}")
@@ -179,9 +201,11 @@ class OneSource:
 
         marker = self.args.marker
         for p in valid_files:
-            rel_path = p.relative_to(self.root)
+            rel_path = str(p.relative_to(self.root)).replace('\\', '/')
             try:
-                content = p.read_text(encoding="utf-8")
+                # Use utf-8 and replace errors to avoid crashing on weird characters
+                content = p.read_text(encoding="utf-8", errors="replace")
+                
                 if self.args.tokens and self.encoder:
                     total_tokens += len(self.encoder.encode(content))
                 
@@ -204,10 +228,12 @@ class OneSource:
         if not self.args.dry_run:
             print(f"Output saved to: {self.output_path}")
             if self.args.copy:
-                pyperclip.copy(self.output_path.read_text(encoding="utf-8"))
-                print("Copied to clipboard.")
+                try:
+                    pyperclip.copy(self.output_path.read_text(encoding="utf-8"))
+                    print("Copied to clipboard.")
+                except Exception as e:
+                    print(f"Clipboard error: {e}")
         print("="*40)
-    
 
 def main():
     OneSource().run()
