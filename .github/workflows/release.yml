@@ -1,6 +1,5 @@
 name: Publish & Release
 
-# 只有在 push tag (例如 v1.0.0) 時才觸發
 on:
   push:
     tags:
@@ -12,7 +11,7 @@ jobs:
     name: Upload to PyPI
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # 為了 Trusted Publishing (如果有的話)
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       
@@ -31,8 +30,8 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          # 記得去 GitHub Repo Settings -> Secrets 加入 PYPI_API_TOKEN
 
+  # === 第二部分：打包 EXE & Release ===
   build-and-release:
     name: Build EXE & GitHub Release
     runs-on: windows-latest
@@ -50,7 +49,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r onesource_cli.egg-info/requires.txt
+          pip install .
           pip install pyinstaller
 
       - name: Build EXE with PyInstaller
