@@ -3,7 +3,10 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*' # 當你推送以 v 開頭的標籤時觸發（例如 v1.0.1）
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
