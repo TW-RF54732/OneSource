@@ -1,4 +1,4 @@
-# v1.2.0
+# v1.2.0: 
 
 This release focuses on **Distribution & Experience**. We've completely overhauled how Windows users install OneSource, separating the installation logic from the core tool to ensure maximum stability and flexibility.
 
