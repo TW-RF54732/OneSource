@@ -8,7 +8,7 @@ import pyperclip
 # Optional: Precise Token Calculation
 try:
     import tiktoken
-    import tiktoken_ext.openai_public # Moved inside try block
+    import tiktoken_ext.openai_public 
     HAS_TIKTOKEN = True
 except ImportError:
     HAS_TIKTOKEN = False
@@ -33,13 +33,24 @@ class OneSource:
         self.root = Path(self.args.path).resolve()
         self.spec = self._load_gitignore()
         self.output_path = Path(self.args.output)
-        self.encoder = None
         
+        # Build pathspecs for include/exclude
+        self.include_spec = self._build_pathspec(self.args.include)
+        self.exclude_spec = self._build_pathspec(self.args.exclude)
+        
+        self.encoder = None
         if HAS_TIKTOKEN:
             try:
                 self.encoder = tiktoken.get_encoding("cl100k_base")
             except Exception as e:
                 print(f"  ! Warning: Failed to load tiktoken encoding: {e}")
+
+    def _build_pathspec(self, patterns_str):
+        if not patterns_str:
+            return None
+        # Split by comma and strip whitespace
+        patterns = [p.strip() for p in patterns_str.split(",") if p.strip()]
+        return pathspec.PathSpec.from_lines('gitwildmatch', patterns)
 
     def _parse_args(self):
         defaults = {}
@@ -53,8 +64,10 @@ class OneSource:
         parser = argparse.ArgumentParser(description=BANNER, formatter_class=argparse.RawDescriptionHelpFormatter)
         parser.add_argument("path", nargs="?", default=defaults.get("path", "."), help="Target project path")
         parser.add_argument("-o", "--output", default=defaults.get("output", "allCode.txt"), help="Output filename")
-        parser.add_argument("-e", "--ext", default=defaults.get("ext"), help="Filter by extensions (e.g., .py,.js)")
-        parser.add_argument("--exclude", default=defaults.get("exclude"), help="Additional names to exclude")
+        parser.add_argument("-i", "--include", default=defaults.get("include"), help="Include patterns (e.g., *.py,src/**/*.js)")
+        parser.add_argument("-x", "--exclude", default=defaults.get("exclude"), help="Exclude patterns (e.g., venv/,**/*.log)")
+        parser.add_argument("-m", "--marker", default=defaults.get("marker", "file"), help="Custom XML tag name (default: file)")
+        parser.add_argument("--no-tree", action="store_true", default=defaults.get("no_tree", False), help="Disable project structure tree")
         parser.add_argument("--max-size", type=int, default=defaults.get("max_size", 500), help="Max file size (KB)")
         parser.add_argument("--no-ignore", action="store_true", help="Ignore .gitignore rules")
         parser.add_argument("--dry-run", action="store_true", help="Preview list without writing to disk")
@@ -67,8 +80,10 @@ class OneSource:
         if args.save:
             config_to_save = {
                 "output": args.output,
-                "ext": args.ext,
+                "include": args.include,
                 "exclude": args.exclude,
+                "marker": args.marker,
+                "no_tree": args.no_tree,
                 "max_size": args.max_size
             }
             with open(CONFIG_FILE, "w") as f:
@@ -81,8 +96,14 @@ class OneSource:
         if self.args.no_ignore: 
             return None
         gi = self.root / ".gitignore"
-        return pathspec.PathSpec.from_lines('gitwildmatch', gi.read_text().splitlines()) if gi.exists() else None
-
+        if gi.exists():
+            try:
+                content = gi.read_text(encoding="utf-8", errors="ignore")
+                return pathspec.PathSpec.from_lines('gitwildmatch', content.splitlines())
+            except Exception as e:
+                print(f"  ! Warning: Failed to read .gitignore: {e}")
+                return None
+        return None
     def _is_binary(self, path: Path):
         try:
             with open(path, 'tr') as f:
@@ -95,21 +116,21 @@ class OneSource:
         if path.is_symlink() or ".git" in path.parts or path == self.output_path: 
             return True
         
-        rel_path = path.relative_to(self.root)
-        
-        # General exclusion
-        if self.args.exclude and any(ex in path.parts for ex in self.args.exclude.split(",")): 
-            return True
+        rel_path = str(path.relative_to(self.root))
         
         # Gitignore check
-        if self.spec and self.spec.match_file(str(rel_path)): 
+        if self.spec and self.spec.match_file(rel_path): 
             return True
         
-        # File specific checks
+        # Custom exclude check
+        if self.exclude_spec and self.exclude_spec.match_file(rel_path):
+            return True
+
         if path.is_file():
-            # Extension filter: Only apply to files
-            if self.args.ext and path.suffix not in self.args.ext.split(","): 
+            # Custom include check: if include is set, file must match
+            if self.include_spec and not self.include_spec.match_file(rel_path):
                 return True
+            
             # Size and Binary check
             if path.stat().st_size > self.args.max_size * 1024 or self._is_binary(path): 
                 return True
@@ -118,7 +139,6 @@ class OneSource:
 
     def _generate_tree(self, dir_path, prefix=""):
         tree_str = ""
-        # Filter and sort entries
         try:
             entries = sorted([e for e in dir_path.iterdir() if not self._should_ignore(e)], 
                             key=lambda x: (x.is_file(), x.name))
@@ -139,25 +159,25 @@ class OneSource:
         mode_label = "[DRY RUN]" if self.args.dry_run else "[PROCESSING]"
         print(f"{mode_label} Root: {self.root}")
 
-        # Pre-scan valid files
         valid_files = [p for p in self.root.rglob("*") if p.is_file() and not self._should_ignore(p)]
         
-        # Generate the tree structure
-        project_tree = f"{self.root.name}/\n{self._generate_tree(self.root)}"
-        
-        # Display tree in console for visibility
-        print("\nProject Structure Preview:")
-        print("-" * 20)
-        print(project_tree)
-        print("-" * 20 + "\n")
+        project_tree = None
+        if not self.args.no_tree:
+            project_tree = f"{self.root.name}/\n{self._generate_tree(self.root)}"
+            print("\nProject Structure Preview:")
+            print("-" * 20)
+            print(project_tree)
+            print("-" * 20 + "\n")
 
         total_tokens = 0
         out_file = None
         
         if not self.args.dry_run:
             out_file = open(self.output_path, "w", encoding="utf-8")
-            out_file.write(f"<project_structure>\n{project_tree}</project_structure>\n\n")
+            if project_tree:
+                out_file.write(f"<project_structure>\n{project_tree}</project_structure>\n\n")
 
+        marker = self.args.marker
         for p in valid_files:
             rel_path = p.relative_to(self.root)
             try:
@@ -166,7 +186,7 @@ class OneSource:
                     total_tokens += len(self.encoder.encode(content))
                 
                 if out_file:
-                    out_file.write(f'<file path="{rel_path}">\n{content}\n</file>\n\n')
+                    out_file.write(f'<{marker} path="{rel_path}">\n{content}\n</{marker}>\n\n')
                 
                 print(f"  + {rel_path}")
             except Exception as e:
@@ -178,7 +198,7 @@ class OneSource:
         print("\n" + "="*40)
         print(f"Files Processed: {len(valid_files)}")
         if self.args.tokens:
-            token_str = f"{total_tokens:,}" if self.encoder else "tiktoken initialization failed"
+            token_str = f"{total_tokens:,}" if self.encoder else "tiktoken error"
             print(f"Total Tokens:    {token_str}")
         
         if not self.args.dry_run:
