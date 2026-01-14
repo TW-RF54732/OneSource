@@ -1,39 +1,69 @@
-name: Build and Release
+name: Publish & Release
 
+# 只有在 push tag (例如 v1.0.0) 時才觸發
 on:
   push:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-
 jobs:
-  build:
+  # === 第一部分：發布到 PyPI ===
+  pypi-publish:
+    name: Upload to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # 為了 Trusted Publishing (如果有的話)
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # 記得去 GitHub Repo Settings -> Secrets 加入 PYPI_API_TOKEN
+
+  build-and-release:
+    name: Build EXE & GitHub Release
     runs-on: windows-latest
+    needs: pypi-publish
+    permissions:
+      contents: write
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller pathspec pyperclip tiktoken
+      - name: Install dependencies
+        run: |
+          pip install -r onesource_cli.egg-info/requires.txt
+          pip install pyinstaller
 
-    - name: Build EXE
-      run: python build.py
+      - name: Build EXE with PyInstaller
+        run: python make_exe.py
 
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: dist/OneSource.exe
-        body_path: README.md # 直接用 README 當作 Release 說明
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release & Upload Asset
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/OneSource.exe
+          body: |
+            ## New Update
+            Install via pip: `pip install onesource-cli`
+            Or download the `.exe` below for Windows.
+          draft: false
+          prerelease: false

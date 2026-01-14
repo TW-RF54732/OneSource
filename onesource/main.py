@@ -207,6 +207,10 @@ class OneSource:
                 pyperclip.copy(self.output_path.read_text(encoding="utf-8"))
                 print("Copied to clipboard.")
         print("="*40)
+    
+
+def main():
+    OneSource().run()
 
 if __name__ == "__main__":
-    OneSource().run()
+    main()
