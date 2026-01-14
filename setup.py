@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="onesource-cli",
-    version="1.1.2",
+    version="1.1.3",
     author="lolLeo",
     author_email="your.email@example.com",
     description="A vibe coding tool to aggregate project code for LLMs.",
