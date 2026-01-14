@@ -1,3 +1,9 @@
+# v1.2.0
+
+## 🚀 New Features
+* ## 🐛 Bug Fixes
+* ## 📦 Installation
+Download the `OneSource_Windows_Installer.zip` below.
 # v1.2.0: 
 
 This release focuses on **Distribution & Experience**. We've completely overhauled how Windows users install OneSource, separating the installation logic from the core tool to ensure maximum stability and flexibility.
