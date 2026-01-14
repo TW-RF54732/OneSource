@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 import pathspec
 import pyperclip
-import tiktoken_ext.openai_public
+
 # Optional: Precise Token Calculation
 try:
     import tiktoken
+    import tiktoken_ext.openai_public # Moved inside try block
     HAS_TIKTOKEN = True
 except ImportError:
     HAS_TIKTOKEN = False
@@ -32,7 +33,13 @@ class OneSource:
         self.root = Path(self.args.path).resolve()
         self.spec = self._load_gitignore()
         self.output_path = Path(self.args.output)
-        self.encoder = tiktoken.get_encoding("cl100k_base") if HAS_TIKTOKEN else None
+        self.encoder = None
+        
+        if HAS_TIKTOKEN:
+            try:
+                self.encoder = tiktoken.get_encoding("cl100k_base")
+            except Exception as e:
+                print(f"  ! Warning: Failed to load tiktoken encoding: {e}")
 
     def _parse_args(self):
         defaults = {}
@@ -87,21 +94,37 @@ class OneSource:
     def _should_ignore(self, path: Path):
         if path.is_symlink() or ".git" in path.parts or path == self.output_path: 
             return True
+        
         rel_path = path.relative_to(self.root)
+        
+        # General exclusion
         if self.args.exclude and any(ex in path.parts for ex in self.args.exclude.split(",")): 
             return True
+        
+        # Gitignore check
         if self.spec and self.spec.match_file(str(rel_path)): 
             return True
-        if self.args.ext and path.suffix not in self.args.ext.split(","): 
-            return True
+        
+        # File specific checks
         if path.is_file():
+            # Extension filter: Only apply to files
+            if self.args.ext and path.suffix not in self.args.ext.split(","): 
+                return True
+            # Size and Binary check
             if path.stat().st_size > self.args.max_size * 1024 or self._is_binary(path): 
                 return True
+                
         return False
 
     def _generate_tree(self, dir_path, prefix=""):
         tree_str = ""
-        entries = sorted([e for e in dir_path.iterdir() if not self._should_ignore(e)], key=lambda x: (x.is_file(), x.name))
+        # Filter and sort entries
+        try:
+            entries = sorted([e for e in dir_path.iterdir() if not self._should_ignore(e)], 
+                            key=lambda x: (x.is_file(), x.name))
+        except PermissionError:
+            return f"{prefix}[Permission Denied]\n"
+
         for i, entry in enumerate(entries):
             is_last = (i == len(entries) - 1)
             connector = "\\-- " if is_last else "|-- "
@@ -111,25 +134,35 @@ class OneSource:
         return tree_str
 
     def run(self):
-        # Display Banner
         print(BANNER)
         
         mode_label = "[DRY RUN]" if self.args.dry_run else "[PROCESSING]"
         print(f"{mode_label} Root: {self.root}")
 
+        # Pre-scan valid files
         valid_files = [p for p in self.root.rglob("*") if p.is_file() and not self._should_ignore(p)]
-        total_tokens = 0
         
+        # Generate the tree structure
+        project_tree = f"{self.root.name}/\n{self._generate_tree(self.root)}"
+        
+        # Display tree in console for visibility
+        print("\nProject Structure Preview:")
+        print("-" * 20)
+        print(project_tree)
+        print("-" * 20 + "\n")
+
+        total_tokens = 0
         out_file = None
+        
         if not self.args.dry_run:
             out_file = open(self.output_path, "w", encoding="utf-8")
-            out_file.write(f"<project_structure>\n{self.root.name}/\n{self._generate_tree(self.root)}</project_structure>\n\n")
+            out_file.write(f"<project_structure>\n{project_tree}</project_structure>\n\n")
 
         for p in valid_files:
             rel_path = p.relative_to(self.root)
             try:
                 content = p.read_text(encoding="utf-8")
-                if self.args.tokens and HAS_TIKTOKEN:
+                if self.args.tokens and self.encoder:
                     total_tokens += len(self.encoder.encode(content))
                 
                 if out_file:
@@ -145,7 +178,7 @@ class OneSource:
         print("\n" + "="*40)
         print(f"Files Processed: {len(valid_files)}")
         if self.args.tokens:
-            token_str = f"{total_tokens:,}" if HAS_TIKTOKEN else "tiktoken not installed"
+            token_str = f"{total_tokens:,}" if self.encoder else "tiktoken initialization failed"
             print(f"Total Tokens:    {token_str}")
         
         if not self.args.dry_run:
