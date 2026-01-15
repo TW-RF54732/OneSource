@@ -9,6 +9,8 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 
+![OneSource Demo](OneSource_demo.gif)
+
 **OneSource** aggregates your entire project into a single, context-rich text file (or clipboard) for LLMs like Claude, ChatGPT, and Gemini.
 
 It bridges the gap between **Windows users** who want a simple `.exe` and **Python developers** who want a native CLI tool.
