@@ -36,40 +36,31 @@ It bridges the gap between **Windows users** who want a simple `.exe` and **Pyth
 Select your platform below to see the instructions.
 
 <details>
-<summary><strong>🪟 Windows Users (Click to expand)</strong></summary>
+<summary><strong>🪟 Windows Users - Packed up exe (Click to expand)</strong></summary>
 
-We offer three ways to install OneSource on Windows. Choose the one that fits your style.
+We offer two ways to install OneSource on Windows. Choose the one that fits your style.
 
-#### Option 1: The Local Installer (Recommended)
-*Best for most users. Ensures the tool is added to your system PATH.*
-
-1.  Download `OneSource_Windows_Installer.zip` from the **[Releases Page](https://github.com/TW-RF54732/OneSource/releases)**.
-2.  **Unzip** the file.
-3.  Double-click `install.bat`.
-4.  Done! You can now type `OneSource` in any terminal.
-
-#### Option 2: The Network Installer (PowerShell)
-*Best for power users or scripts. Installs the latest version via one command.*
+#### Option 1: The Network Installer (PowerShell) - Recommended
+*Best for most users. Installs the latest version and adds it to PATH via one command.*
 
 Open **PowerShell** and paste the following:
 
 ```powershell
-irm [https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1](https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1) | iex
-
+irm https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1 | iex
 ```
 
-#### Option 3: The Portable EXE
+#### Option 2: The Portable EXE
 
 *Best for USB drives or temporary use.*
 
-1. Download the standalone `OneSource.exe` from Releases.
+1. Download the standalone `OneSource.exe` from the **[Releases Page](https://github.com/TW-RF54732/OneSource/releases)**.
 2. Place it anywhere (e.g., inside your project folder).
 3. Run it directly via terminal: `.\OneSource.exe`
 
 </details>
 
 <details>
-<summary><strong>🐍 Python Developers / Linux / macOS (Click to expand)</strong></summary>
+<summary><strong>🐍 Python Developers / Every OS - python pip cli tool (Click to expand)</strong></summary>
 
 If you have Python installed or want to integrate this into your CI/CD pipeline, use PyPI.
 
@@ -86,10 +77,7 @@ pip install onesource-cli
 pip install --upgrade onesource-cli
 
 ```
-
 </details>
-
----
 
 ## 🎮 Usage Scenarios
 
