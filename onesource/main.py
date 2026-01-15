@@ -15,7 +15,7 @@ try:
 except ImportError:
     HAS_TIKTOKEN = False
 
-VERSION = "v1.2.1"
+VERSION = "v1.2.2"
 
 # This BANNER will appear in --help and the Installer
 BANNER = rf"""
