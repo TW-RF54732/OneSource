@@ -15,7 +15,7 @@ try:
 except ImportError:
     HAS_TIKTOKEN = False
 
-VERSION = "v1.3.0"
+VERSION = "v1.3.1"
 
 BANNER = rf"""
 ==========================================================
