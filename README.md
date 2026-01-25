@@ -48,7 +48,8 @@ We offer two ways to install OneSource on Windows. Choose the one that fits your
 Open **PowerShell** and paste the following:
 
 ```powershell
-irm https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1 | iex
+irm [https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1](https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1) | iex
+
 ```
 
 #### Option 2: The Portable EXE
@@ -71,6 +72,7 @@ If you have Python installed or want to integrate this into your CI/CD pipeline,
 ```bash
 pip install onesource-cli
 
+
 ```
 
 **Upgrade:**
@@ -78,7 +80,9 @@ pip install onesource-cli
 ```bash
 pip install --upgrade onesource-cli
 
+
 ```
+
 </details>
 
 ## 🎮 Usage Scenarios
@@ -93,6 +97,7 @@ This packs everything (respecting `.gitignore`) and copies it to your clipboard.
 ```bash
 OneSource -c
 
+
 ```
 
 *-> Ctrl+V into ChatGPT.*
@@ -104,6 +109,7 @@ Don't confuse the AI with frontend assets. Only grab the Python logic.
 ```bash
 OneSource -i "*.py" -c
 
+
 ```
 
 ### Scenario 3: "Will this fit in the context window?"
@@ -112,6 +118,7 @@ Check token count before pasting.
 
 ```bash
 OneSource -t --dry-run
+
 
 ```
 
@@ -122,9 +129,22 @@ Always exclude `tests/` and `legacy/` folders? Save your config.
 ```bash
 OneSource -x "tests/**,legacy/**" --save
 
+
 ```
 
 *Creates a hidden config file. Next time, just run `OneSource`.*
+
+### Scenario 5: "Smart Isolation" Mode (Separate Tree & Content) 🧠
+
+Want to see the full project structure (including docs and configs) to give AI context, but only feed it the actual Python code content to save tokens?
+
+```bash
+OneSource -i "*.py" -ti "*.py,*.md,*.json" -c
+
+
+```
+
+*Files processed: Only `.py`. Project Tree shown: `.py`, `.md`, and `.json`.*
 
 ---
 
@@ -137,10 +157,13 @@ OneSource -x "tests/**,legacy/**" --save
 | `-c`, `--copy` | **Auto-copy** result to clipboard. | `False` |
 | `-i`, `--include` | Only include files matching this pattern (Applied **AFTER** `.gitignore`). | All non-ignored files |
 | `-x`, `--exclude` | Extra patterns to ignore. **Wins over `-i**` if there is a conflict. | `None` |
+| `--no-ignore` | **Unlock mode:** Force scan files even if listed in `.gitignore`. | `False` |
+| `-ti`, `--tree-include` | Tree include patterns. **Triggers Independent Mode** (isolates tree from file filters). | `None` (Inherits `-i`) |
+| `-tx`, `--tree-exclude` | Tree exclude patterns. **Triggers Independent Mode** (isolates tree from file filters). | `None` (Inherits `-x`) |
+| `--tree-no-ignore` | Ignore `.gitignore` rules *only* for the project tree visualization. | `False` |
 | `-t`, `--tokens` | Show token count (requires `tiktoken`). | `False` |
 | `--no-tree` | Disable the directory tree visualization at the top. | `False` |
 | `--max-size` | Skip files larger than this size (in KB). | `500` KB |
-| `--no-ignore` | **Unlock mode:** Force scan files even if listed in `.gitignore`. | `False` |
 | `--marker` | Custom XML tag for wrapping code (e.g., use `code` instead of `file`). | `file` |
 | `--dry-run` | Preview which files will be processed without writing/copying. | `False` |
 | `--save` | Save current flags as default config (`.onesourcerc`). | `False` |
