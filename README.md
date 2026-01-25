@@ -48,8 +48,7 @@ We offer two ways to install OneSource on Windows. Choose the one that fits your
 Open **PowerShell** and paste the following:
 
 ```powershell
-irm [https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1](https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1) | iex
-
+irm https://raw.githubusercontent.com/TW-RF54732/OneSource/main/install.ps1 | iex
 ```
 
 #### Option 2: The Portable EXE
