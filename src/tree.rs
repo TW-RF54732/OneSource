@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::io::{self,Write};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -26,21 +27,22 @@ impl Node{
         }
         current.is_dir = is_dir;
     }
-    pub fn print(&self,indent: &str){
+    pub fn print<W: Write>(&self, indent: &str, writer: &mut W) -> io::Result<()>{
         let len = self.children.len();
         for (i,(name,child)) in self.children.iter().enumerate(){
             let is_last = i == len - 1;
             let connector = if is_last {"└── "} else {"├── "};
 
-            println!("{}{}{}",indent,connector,name);
+            writeln!(writer, "{}{}{}", indent, connector, name)?;
             if !child.children.is_empty(){
                 let new_indent = format!(
                     "{}{}",
                     indent,
                     if is_last{"    "} else{"│   "}
                 );
-                child.print(&new_indent);
+                child.print(&new_indent, writer)?;
             }
         }
+        Ok(())
     }
 }
