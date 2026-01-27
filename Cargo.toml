@@ -6,3 +6,4 @@ description = "Placeholder"
 edition = "2021"
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
+ignore = "0.4.25"
