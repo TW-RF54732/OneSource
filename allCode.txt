@@ -1,0 +1,151 @@
+<project_structure>
+onesource/
+|-- src
+|   |-- examples
+|   |   \-- tree.rs
+|   |-- main.rs
+|   \-- tree.rs
+|-- .gitignore
+|-- Cargo.lock
+\-- Cargo.toml
+</project_structure>
+
+<file path="src/main.rs">
+use clap::{Parser, builder, error};
+use std::{ path::PathBuf};
+use ignore::{Walk, WalkBuilder};
+mod tree;
+
+#[derive(Parser,Debug)]
+#[command(name = "onesource", author = "lolLeo", version = "1.0")]
+struct Args{
+    // File setting
+    #[arg(default_value = ".",help = "Set location")]//Target path
+    path :PathBuf,
+    #[arg(short,long,default_value="allCode")]//Output file name
+    output_name:String,
+    #[arg(short,long,default_value="txt")]//Output file extension
+    extension:String,
+    
+    //File config
+    #[arg(long,action = clap::ArgAction::SetTrue,help="Don't use .gitignore")]
+    ignore:bool,
+    
+    //Tree config
+    #[arg(long,action = clap::ArgAction::SetTrue,help="Don't write tree")]
+    tree:bool,
+    #[arg(long,action = clap::ArgAction::SetTrue,help="Tree don't use .gitignore")]
+    tree_ignore:bool,
+    
+}
+fn main() {
+    let args = Args::parse();
+    debug_log(&args);
+    let walker = WalkBuilder::new(&args.path)
+        .standard_filters(true)
+        .build();
+
+    for result in walker{
+        match result {
+            Ok(entry)=>{
+                let depth = entry.depth();
+                let name = entry.file_name().to_string_lossy().to_string();
+                println!("  {:indent$}└──{}","",name,indent = depth *2)
+            }
+            Err(error)=>{
+                print!("{}",error)
+            }
+        }
+    }
+
+}
+
+fn debug_log(args:&Args){
+    println!("======ARGS======");
+    println!("Target path: {:#?}",args);    
+    println!("======Others======")    
+}
+
+</file>
+
+<file path="src/tree.rs">
+use std::collections::BTreeMap;
+use std::path::Path;
+
+#[derive(Debug)]
+pub struct Node{
+    pub name:String,
+    pub children:BTreeMap<String,Node>,
+    pub is_dir:bool,
+}
+
+impl Node{
+    pub fn new(name:String,is_dir:bool){
+        self{
+            name,
+            children: BTreeMap::new(),
+            is_dir,
+        }
+    }
+    pub fn insert_path(&mut self,path:&Path,is_dir:bool){
+        let mut current = self;
+        for component in path.collections(){
+            let name = component.as_os_str().to_string_lossy().to_string();
+            current = current
+                .children.entry(name)
+                .or_insert_with(|| Node::new(name, false));
+        }
+        current.is_file = is_file;
+    }
+}
+</file>
+
+<file path="src/examples/tree.rs">
+use std::collections::BTreeMap;
+use std::path::Path;
+
+#[derive(Debug)]
+pub struct Node {
+    pub name: String,
+    pub children: BTreeMap<String, Node>,
+    pub is_file: bool,
+}
+
+impl Node {
+    pub fn new(name: String, is_file: bool) -> Self {
+        Self {
+            name,
+            children: BTreeMap::new(),
+            is_file,
+        }
+    }
+
+    // 插入路徑的邏輯
+    pub fn insert_path(&mut self, path: &Path, is_file: bool) {
+        let mut current = self;
+        for component in path.components() {
+            let name = component.as_os_str().to_string_lossy().to_string();
+            current = current.children.entry(name.clone())
+                .or_insert_with(|| Node::new(name, false));
+        }
+        current.is_file = is_file;
+    }
+
+    // 遞迴列印
+    pub fn print(&self, indent: &str) {
+        let len = self.children.len();
+        for (i, (name, child)) in self.children.iter().enumerate() {
+            let is_last = i == len - 1;
+            let connector = if is_last { "└── " } else { "├── " };
+            
+            println!("{}{}{}", indent, connector, name);
+
+            if !child.children.is_empty() {
+                let new_indent = format!("{}{}", indent, if is_last { "    " } else { "│   " });
+                child.print(&new_indent);
+            }
+        }
+    }
+}
+</file>
+
