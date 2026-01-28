@@ -1,5 +1,5 @@
 use clap::{Parser};
-use std::{fs::File,path::PathBuf};
+use std::{fs::File,path::PathBuf, task::Context};
 use ignore::WalkBuilder;
 use std::io::{BufWriter,Write};
 
@@ -15,15 +15,14 @@ struct Args{
     path :PathBuf,
     #[arg(short,long,default_value="allCode.txt")]//Output file name
     output_path:PathBuf,
-    #[arg(short,long,default_value="*")]
-    include:String,
-    #[arg(short='x',long,default_value="")]
-    exclude:String,
     
     //content setting
     #[arg(long,action = clap::ArgAction::SetTrue,help="Don't use .gitignore")]
     no_ignore:bool,
-    
+    #[arg(short,long,default_value="*")]
+    include:String,
+    #[arg(short='x',long,default_value="")]
+    exclude:String,
     
     //Tree setting
     #[arg(long,visible_alias="ti")]
@@ -34,7 +33,10 @@ struct Args{
     no_tree:bool,
     #[arg(long,action = clap::ArgAction::SetTrue,help="Tree don't use .gitignore")]
     tree_no_ignore:bool,
-    
+
+    // Behavior setting
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Preview file list without writing to disk")]
+    dry_run: bool,
 }
 fn struct_tree<W: Write>(args:&Args,writer: &mut W){
     let final_include = args.tree_include.as_deref().unwrap_or(&args.include);
@@ -66,11 +68,12 @@ fn struct_tree<W: Write>(args:&Args,writer: &mut W){
     writeln!(writer,"{}/", root_name).expect("Write root failed");
     tree_root.print("",writer).expect("Error at print tree");
 }
-fn rw_file(args:&Args,writer:&mut BufWriter<File>){
+fn rw_file<W: Write>(args:&Args,writer:&mut W){
     let filter = filter_utils::FileFilter::new(&args.include, &args.exclude);
     let walker = WalkBuilder::new(&args.path)
         .standard_filters(!args.no_ignore)
         .build();
+    let mut count:u32 = 0;
     for result in walker{
         match result {
             Ok(entry)=>{
@@ -78,11 +81,18 @@ fn rw_file(args:&Args,writer:&mut BufWriter<File>){
                 if !filter.is_match(rel_path){continue;}
                 let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
                 if !is_dir{
-                    if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                    if args.dry_run {
+                        println!("[EXPECT] {}", rel_path.display());
+                        count += 1;
+                        continue;
+                    }
+                    if let Ok(bytes) = std::fs::read(entry.path()) {
+                        let content = String::from_utf8_lossy(&bytes);
                         writeln!(writer, "<file path=\"{}\">", rel_path.display()).unwrap();
                         writeln!(writer, "{}", content).unwrap();
                         writeln!(writer, "</file>\n").unwrap();
-                        println!("  + {}",rel_path.as_os_str().to_string_lossy())
+                        println!("  + {}",rel_path.display());
+                        count += 1;
                     }
                 }
             }
@@ -91,21 +101,56 @@ fn rw_file(args:&Args,writer:&mut BufWriter<File>){
             }
         }
     }
-    writer.flush().expect("last input flust fail");
+    if !args.dry_run {
+        writer.flush().expect("last input flush fail");
+    }
+    println!("======File processing completed======");
+    println!("Files Processed: {}",count);
 }
 fn main() {
     let args = Args::parse();
-    
     debug_log(&args);
 
-    let file = File::create(&args.output_path).expect("Create output file failed");
-    let mut writer = BufWriter::new(file);
-    if !args.no_tree{
-        let mut stdout = std::io::stdout();
-        let mut multi_writer = io_utils::tee(&mut writer, &mut stdout);
-        struct_tree(&args,&mut multi_writer);
+    if args.dry_run {
+        println!("\n[DRY RUN MODE] Previews only, no files will be written.\n");
+        
+        if !args.no_tree {
+            struct_tree(&args, &mut std::io::stdout());
+        }
+
+        // if dry run, no writer
+        let mut sink = std::io::sink();
+        rw_file(&args, &mut sink);
+
+        println!("Dry run finished. If executed, file would be saved at: {}",std::env::current_dir()
+                                                                                .map(|dir| dir.join(&args.output_path))
+                                                                                .unwrap_or_else(|_| args.output_path.clone()) 
+                                                                                .display());
+
+    } else {
+        
+        // Only not dry will creat file
+        let file = File::create(&args.output_path).expect("Create output file failed");
+        let mut writer = BufWriter::new(file);
+        
+        let abs_path_display = args.output_path.canonicalize()
+            .unwrap_or_else(|_| args.output_path.clone())
+            .display()
+            .to_string();
+        if !args.no_tree {
+            let mut stdout = std::io::stdout();
+            let mut multi_writer = io_utils::tee(&mut writer, &mut stdout);
+            struct_tree(&args, &mut multi_writer);
+        }
+
+        rw_file(&args, &mut writer);
+        
+        writer.flush().expect("Flush failed");
+        
+        println!("Output saved to: {}", abs_path_display);
     }
-    rw_file(&args,&mut writer);
+
+    println!("=====================================");
 }
 
 fn debug_log(args:&Args){
