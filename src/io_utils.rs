@@ -1,4 +1,3 @@
-// src/io_utils.rs
 use std::io::Write;
 
 pub struct MultiWriter<'a, W1: Write, W2: Write> {

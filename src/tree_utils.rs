@@ -4,15 +4,13 @@ use std::path::Path;
 
 #[derive(Debug)]
 pub struct Node{
-    pub name:String,
     pub children:BTreeMap<String,Node>,
     pub is_dir:bool,
 }
 
 impl Node{
-    pub fn new(name:String,is_dir:bool)->Self{
+    pub fn new(is_dir:bool)->Self{
         Self {
-            name,
             children: BTreeMap::new(),
             is_dir,
         }
@@ -23,7 +21,7 @@ impl Node{
             let name = component.as_os_str().to_string_lossy().to_string();
             current = current
                 .children.entry(name.clone())
-                .or_insert_with(|| Node::new(name, false));
+                .or_insert_with(|| Node::new( true));
         }
         current.is_dir = is_dir;
     }
@@ -32,8 +30,7 @@ impl Node{
         for (i,(name,child)) in self.children.iter().enumerate(){
             let is_last = i == len - 1;
             let connector = if is_last {"└── "} else {"├── "};
-
-            writeln!(writer, "{}{}{}", indent, connector, name)?;
+            writeln!(writer, "{}{}{}{}", indent, connector, name,if child.is_dir { "/" } else { "" })?;
             if !child.children.is_empty(){
                 let new_indent = format!(
                     "{}{}",
