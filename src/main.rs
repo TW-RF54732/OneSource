@@ -1,5 +1,5 @@
 use clap::{Parser};
-use std::{fs::File,path::PathBuf, task::Context};
+use std::{fs::File,path::PathBuf};
 use ignore::WalkBuilder;
 use std::io::{BufWriter,Write};
 
@@ -8,7 +8,7 @@ mod io_utils;
 mod filter_utils;
 
 #[derive(Parser,Debug)]
-#[command(name = "onesource", author = "lolLeo", version = "1.0")]
+#[command(name = "onesource", author = "lolLeo", version = "0.2.0")]
 struct Args{
     // File setting
     #[arg(default_value = ".",help = "Set location")]//Target path
@@ -23,7 +23,8 @@ struct Args{
     include:String,
     #[arg(short='x',long,default_value="")]
     exclude:String,
-    
+    #[arg(short='s', long, default_value_t = 500, help = "Max file size in KB")]
+    pub max_size: usize,
     //Tree setting
     #[arg(long,visible_alias="ti")]
     tree_include: Option<String>,
@@ -37,6 +38,8 @@ struct Args{
     // Behavior setting
     #[arg(long, action = clap::ArgAction::SetTrue, help = "Preview file list without writing to disk")]
     dry_run: bool,
+    #[arg(long,action = clap::ArgAction::SetTrue,help = "Show all argument (DEBUG)")]
+    show_arg:bool,
 }
 fn struct_tree<W: Write>(args:&Args,writer: &mut W){
     let final_include = args.tree_include.as_deref().unwrap_or(&args.include);
@@ -46,6 +49,7 @@ fn struct_tree<W: Write>(args:&Args,writer: &mut W){
     
     let walker = WalkBuilder::new(&args.path)
         .standard_filters(!args.tree_no_ignore)
+        .require_git(false)
         .build();
     
     for result in walker{
@@ -72,6 +76,7 @@ fn rw_file<W: Write>(args:&Args,writer:&mut W){
     let filter = filter_utils::FileFilter::new(&args.include, &args.exclude);
     let walker = WalkBuilder::new(&args.path)
         .standard_filters(!args.no_ignore)
+        .require_git(false)
         .build();
     let mut count:u32 = 0;
     for result in walker{
@@ -81,6 +86,18 @@ fn rw_file<W: Write>(args:&Args,writer:&mut W){
                 if !filter.is_match(rel_path){continue;}
                 let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
                 if !is_dir{
+                    let metadata = entry.metadata().ok();
+                    let size_kb = metadata.map(|m| m.len() / 1024).unwrap_or(0);
+                    if size_kb > args.max_size as u64 { continue; }
+                    let is_text_file = if let Ok(mut f) = File::open(entry.path()) {
+                        use std::io::Read;
+                        let mut buffer = [0; 1024];
+                        let n = f.read(&mut buffer).unwrap_or(0);
+                        !buffer[..n].contains(&0)
+                    } else {
+                        false
+                    };
+                    if !is_text_file { continue; }
                     if args.dry_run {
                         println!("[EXPECT] {}", rel_path.display());
                         count += 1;
@@ -109,7 +126,7 @@ fn rw_file<W: Write>(args:&Args,writer:&mut W){
 }
 fn main() {
     let args = Args::parse();
-    debug_log(&args);
+    if args.show_arg{ show_args(&args);}
 
     if args.dry_run {
         println!("\n[DRY RUN MODE] Previews only, no files will be written.\n");
@@ -133,15 +150,19 @@ fn main() {
         let file = File::create(&args.output_path).expect("Create output file failed");
         let mut writer = BufWriter::new(file);
         
-        let abs_path_display = args.output_path.canonicalize()
-            .unwrap_or_else(|_| args.output_path.clone())
-            .display()
-            .to_string();
-        if !args.no_tree {
-            let mut stdout = std::io::stdout();
-            let mut multi_writer = io_utils::tee(&mut writer, &mut stdout);
-            struct_tree(&args, &mut multi_writer);
-        }
+        let abs_path = args.output_path.canonicalize()
+            .unwrap_or_else(|_| args.output_path.clone()); // 
+
+        let path_str = abs_path.display().to_string();
+
+        let abs_path_display = path_str
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&path_str);
+                if !args.no_tree {
+                    let mut stdout = std::io::stdout();
+                    let mut multi_writer = io_utils::tee(&mut writer, &mut stdout);
+                    struct_tree(&args, &mut multi_writer);
+                }
 
         rw_file(&args, &mut writer);
         
@@ -150,10 +171,10 @@ fn main() {
         println!("Output saved to: {}", abs_path_display);
     }
 
-    println!("=====================================");
+    // println!("=====================================");
 }
 
-fn debug_log(args:&Args){
+fn show_args(args:&Args){
     println!("======ARGS======");
     println!("Target path: {:#?}",args);    
     println!("======Others======")    
